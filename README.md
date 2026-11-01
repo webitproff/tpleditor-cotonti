@@ -1,3 +1,638 @@
+# Template Editor (tpleditor) for Cotonti
+
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/webitproff/tpleditor-cotonti)
+[![Cotonti](https://img.shields.io/badge/Cotonti%201.0-orange.svg)](https://github.com/Cotonti/Cotonti)
+[![PHP](https://img.shields.io/badge/PHP-8.5%2B-purple.svg)](https://www.php.net/)
+[![License](https://img.shields.io/badge/license-BSD--3--Clause-lightgrey.svg)](https://github.com/webitproff/tpleditor-cotonti/blob/main/License.txt)
+
+A plugin for Cotonti CMF that adds a full-featured `.tpl` file editor to the admin panel — for themes, admin themes, plugins and modules — powered by CodeMirror 5 with syntax highlighting, bracket matching and AJAX saving without page reload. No core modifications — everything goes through standard hooks `tools` and `ajax`.
+
+---
+<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00 (5)" src="https://github.com/user-attachments/assets/79c2ffc5-2ab4-4776-a7bc-30d299c5efc5" />
+<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00" src="https://github.com/user-attachments/assets/b35f9461-fdd0-45b7-b376-577026d37e2e" />
+<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00 (2)" src="https://github.com/user-attachments/assets/77a2881a-e4d2-4483-b327-a515b274d549" />
+<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00 (3)" src="https://github.com/user-attachments/assets/41c62734-a719-473a-a31b-d1354ec61d34" />
+<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00 (4)" src="https://github.com/user-attachments/assets/6e19921d-6a2f-483f-87d8-0d667ac30a68" />
+
+---
+
+
+## 📑 Table of Contents
+
+- [1. Overview](#1-overview)
+  - [1.1. What is Template Editor](#11-what-is-template-editor)
+  - [1.2. Key Features](#12-key-features)
+  - [1.3. System Requirements](#13-system-requirements)
+  - [1.4. Compatibility](#14-compatibility)
+  - [1.5. Links](#15-links)
+- [2. How It Works](#2-how-it-works)
+  - [2.1. Architecture](#21-architecture)
+  - [2.2. Plugin Structure](#22-plugin-structure)
+  - [2.3. Hooks and Their Role](#23-hooks-and-their-role)
+  - [2.4. How the File List Works](#24-how-the-file-list-works)
+  - [2.5. How the Editor Works](#25-how-the-editor-works)
+  - [2.6. URL Parameters](#26-url-parameters)
+  - [2.7. Security](#27-security)
+- [3. Step-by-Step Installation](#3-step-by-step-installation)
+  - [3.1. Download](#31-download)
+  - [3.2. Installation via FTP/SFTP](#32-installation-via-ftpsftp)
+  - [3.3. Activation in Admin Panel](#33-activation-in-admin-panel)
+  - [3.4. Permissions Setup](#34-permissions-setup)
+  - [3.5. Verification](#35-verification)
+- [4. Step-by-Step Usage Guide](#4-step-by-step-usage-guide)
+  - [4.1. File List](#41-file-list)
+  - [4.2. Opening a File in the Editor](#42-opening-a-file-in-the-editor)
+  - [4.3. Saving Changes](#43-saving-changes)
+  - [4.4. Downloading a Backup Copy](#44-downloading-a-backup-copy)
+  - [4.5. Keyboard Shortcuts](#45-keyboard-shortcuts)
+- [5. Plugin Configuration](#5-plugin-configuration)
+- [6. Step-by-Step Security Guide](#6-step-by-step-security-guide)
+- [7. Troubleshooting](#7-troubleshooting)
+- [8. Logs and Diagnostics](#8-logs-and-diagnostics)
+- [9. FAQ](#9-faq)
+- [10. Plugin Update](#10-plugin-update)
+- [11. Plugin Uninstall](#11-plugin-uninstall)
+- [12. Roadmap](#12-roadmap)
+- [13. Changelog](#13-changelog)
+- [14. Contributing](#14-contributing)
+- [15. License](#15-license)
+- [16. Contacts and Support](#16-contacts-and-support)
+
+---
+
+## 1. Overview
+
+### 1.1. What is Template Editor
+
+**Template Editor** is a plugin for [Cotonti CMF](https://github.com/Cotonti/Cotonti) that lets an administrator view and edit any `.tpl` file directly from the admin panel — no FTP/SFTP, no ssh:
+
+- **CodeMirror 5 editor** — HTML/JS/CSS highlighting, line numbers, bracket matching;
+- **file list** — all `.tpl` files from themes, admin themes, plugins, modules and core in one place;
+- **AJAX saving** — no page reload, with a status indicator;
+- **backup download** — one click to download the current version of any file.
+
+The plugin installs as a standard Cotonti extension and **does not require core modifications**. All logic works through two hooks: `tools` and `ajax`.
+
+### 1.2. Key Features
+
+- **Unified file list** — all editable `.tpl` files with root labels ("Theme", "Plugin: foo", "Core admin").
+- **CodeMirror editor** — `eclipse` theme, `htmlmixed` mode, line numbers, match/autoClose brackets, `indentUnit=4`.
+- **Resizable wrapper** — the editor container stretches vertically (`resize: vertical`), ResizeObserver refreshes CodeMirror when the size changes.
+- **fetch-based saving** — POST to `index.php?r=tpleditor` with `action=save`, `file`, `content`, `x` (CSRF).
+- **Download** — GET link to `action=download` with the CSRF token passed via `x`.
+- **Marker-loss protection** — if the source contained `<!-- BEGIN: -->` and the new content does not — saving is rejected.
+- **Cotonti cache clearing** — `Cot::$cache->clear()` is called after a successful save.
+- **Multi-language** — `ru` and `en` language files.
+- **No core modifications** — only `tools` and `ajax` hooks.
+
+### 1.3. System Requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| PHP       | 8.0     | 8.5+        |
+| MySQL     | 8.0     | 8.4+        |
+| MariaDB   | 10.2    | 10.6+       |
+| Cotonti   | 1.0.x   | 1.0.x       |
+
+**PHP extensions:**
+- `pdo_mysql` — required;
+- `mbstring` — for UTF-8 and Cyrillic;
+- `json` — built-in since PHP 8.0.
+
+**File permissions:**
+- theme/plugin/module directories and `.tpl` files must be readable by the web-server user;
+- for saving — writable (`0664` for files, `0775` for directories; Cotonti defaults).
+
+**Client (browser):**
+- any modern browser with `fetch`, `URLSearchParams`, `ResizeObserver` support (Chrome/Edge ≥ 64, Firefox ≥ 69, Safari ≥ 13.1).
+
+### 1.4. Compatibility
+
+Tested on:
+
+- **Cotonti** 1.0.x;
+- **MySQL** 8.4;
+- **MariaDB** 10.2 — 10.11;
+- **PHP** 8.5;
+- **Apache** 2.4, **Nginx** (with php-fpm), **LiteSpeed**.
+
+### 1.5. Links
+
+- **Cotonti Marketplace:** [abuyfile.com/market/cotonti/plugs/tpleditor](https://abuyfile.com/market/cotonti/plugs/tpleditor)
+- **GitHub Repository:** [github.com/webitproff/tpleditor-cotonti](https://github.com/webitproff/tpleditor-cotonti)
+- **Support Forum:** [abuyfile.com/forums/cotonti/custom/](https://abuyfile.com/forums/cotonti/custom/)
+- **CodeMirror:** [codemirror.net/5/](https://codemirror.net/5/)
+
+---
+
+## 2. How It Works
+
+### 2.1. Architecture
+
+The plugin consists of two hook files, one function file and two templates. No schema changes to the database beyond the records added to `cot_core`, `cot_auth`, `cot_config` and `cot_plugins` during installation (standard set).
+
+Flow:
+
+1. The user opens `/admin.php?m=other&p=tpleditor`.
+2. The Router (`system/router/Router.php::routeAdminOther`) picks up `p=tpleditor` and locates `tpleditor.tools.php` via the `tools` hook.
+3. **Without a `file` parameter** — the plugin builds a list of all `.tpl` files (walking `themes/`, `plugins/`, `modules/`, `system/admin/tpl`) and renders `tpleditor.tools.tpl`.
+4. **With a `file=<rel>` parameter** — it validates the path via `tpleditor_validate_path()`, reads the content and renders `tpleditor.editor.tpl` with CodeMirror.
+5. **Saving** — fetch POST to `index.php?r=tpleditor` → `tpleditor.ajax.php` with `action=save`.
+6. **Download** — GET to the same AJAX endpoint with `action=download`.
+
+### 2.2. Plugin Structure
+
+```
+plugins/tpleditor/
+├── tpleditor.setup.php              # plugin metadata + config
+├── tpleditor.tools.php              # tools hook: admin page
+├── tpleditor.ajax.php               # ajax hook: save / read / download
+├── inc/
+│   └── tpleditor.functions.php      # business logic (API)
+├── tpl/
+│   ├── tpleditor.tools.tpl          # file list
+│   └── tpleditor.editor.tpl         # CodeMirror editor
+└── lang/
+    ├── tpleditor.ru.lang.php
+    └── tpleditor.en.lang.php
+```
+
+### 2.3. Hooks and Their Role
+
+| Hook   | Entry point | What it does |
+|--------|-------------|--------------|
+| `tools` | `admin.php?m=other&p=tpleditor` | Modes: file list / CodeMirror editor |
+| `ajax`  | `index.php?r=tpleditor` | Actions: `save`, `read`, `download` |
+
+**Important:** hooks are declared **in the hook files themselves** via the `[BEGIN_COT_EXT]` block. The setup file contains only metadata (`Code`, `Name`, `Version`, `Auth_*`, `Lock_*`) and the config block `[BEGIN_COT_EXT_CONFIG]` with four settings `edit_*`.
+
+### 2.4. How the File List Works
+
+1. The user opens `/admin.php?m=other&p=tpleditor` without a `file` parameter.
+2. `tpleditor_roots()` builds the list of allowed roots — depending on config:
+   - `edit_themes` → `themes/<theme>/` (current user theme);
+   - `edit_admin` → `themes/admin/<admintheme>/` (if `admintheme` is non-empty);
+   - `edit_plugins` → `plugins/<code>/tpl/` for each plugin that has a `tpl/` subdirectory;
+   - `edit_modules` → `modules/<code>/tpl/` for each module that has a `tpl/` subdirectory;
+   - **always** → `system/admin/tpl/` (core admin templates).
+3. `tpleditor_list_files()` recursively walks each root, collects `.tpl` files, sorts by `rel` via `strcasecmp`.
+4. Each row contains: `rel` (path), `size` (bytes), `mtime` (date), `label` (root label).
+5. The `<a href="{FILE_URL}">` link goes to the same URL with `?file=<rel>`.
+
+### 2.5. How the Editor Works
+
+1. The user clicks a file → `/admin.php?m=other&p=tpleditor&file=<rel>`.
+2. `tpleditor_validate_path($file)` returns either `null` (error) or an absolute `realpath`.
+3. The file content is read via `file_get_contents()` and passed to the `{FILE_CONTENT}` tag (after `htmlspecialchars`).
+4. The `tpleditor.editor.tpl` template creates `<textarea id="tpleditor-source">` and initializes `CodeMirror.fromTextArea` on it.
+5. The "Save" button calls `save()` — fetch POST to the AJAX endpoint with `x` (CSRF), `a=save`, `file`, `content=editor.getValue()`.
+6. JSON response: `{success: bool, message: string, bytes?: int}`.
+7. The status indicator next to the buttons shows "Saved (N B)" or "Error: ...".
+
+### 2.6. URL Parameters
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `m`      | `other` | "Other" section in admin |
+| `p`      | `tpleditor` | plugin code |
+| `file`   | string | relative path to `.tpl` (e.g. `themes/mytheme/header.tpl`) |
+
+AJAX requests:
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| `r`      | `tpleditor` | plugin code for the router |
+| `a`      | `save` \| `read` \| `download` | action |
+| `file`   | string | relative path to `.tpl` |
+| `content`| string | content (only for `save`, POST) |
+| `x`      | string | CSRF token `Cot::$sys['xk']` |
+
+### 2.7. Security
+
+- **Double authorization barrier:**
+  - `system/admin/admin.other.php` before include checks `cot_auth('plug','tpleditor','A')` and redirects to 403;
+  - inside `tpleditor.tools.php` and `tpleditor.ajax.php` — `cot_auth('admin','a','A') || cot_auth('plug','tpleditor','A')`.
+  The third argument `'A'` is required: when the mask is longer than 1 character, `cot_auth()` returns an array `[bool, bool, bool]` which is always truthy in PHP. An explicit `'A'` mask gives a scalar `bool`.
+- **CSRF:**
+  - `cot_check_xg(false)` for GET (`download`);
+  - `cot_check_xp()` for POST (`save`, `read`).
+- **Path validation `tpleditor_validate_path()`:**
+  - the file must end in `.tpl`;
+  - no `\0`, empty segments, `.` or `..`;
+  - the path prefix must match one of the allowed roots;
+  - `realpath(file)` and `realpath(root)` must be within `baseDir` — symlink escape protection.
+- **`htmlspecialchars`** — applied to `FILE_REL` and `FILE_CONTENT` before injecting into HTML.
+- **Marker check** — on save, if the source had `<!-- BEGIN: -->` and the new content has none — writing is rejected.
+- **`Content-Type: application/octet-stream` + `X-Content-Type-Options: nosniff`** — for downloads; the browser does not try to render `.tpl` as HTML.
+
+---
+
+## 3. Step-by-Step Installation
+
+### 3.1. Download
+
+**Download** the archive from [GitHub](https://github.com/webitproff/tpleditor-cotonti) or from the [marketplace](https://abuyfile.com/market/cotonti/plugs/tpleditor).
+
+### 3.2. Installation via FTP/SFTP
+
+1. Back up your site and database.
+2. Unpack the downloaded archive locally.
+3. Upload the `tpleditor/` folder to `/plugins/` of your Cotonti site.
+4. Verify the structure:
+
+   ```
+   /plugins/tpleditor/tpleditor.setup.php
+   /plugins/tpleditor/tpleditor.tools.php
+   /plugins/tpleditor/tpleditor.ajax.php
+   /plugins/tpleditor/inc/tpleditor.functions.php
+   /plugins/tpleditor/tpl/tpleditor.tools.tpl
+   /plugins/tpleditor/tpl/tpleditor.editor.tpl
+   /plugins/tpleditor/lang/tpleditor.ru.lang.php
+   /plugins/tpleditor/lang/tpleditor.en.lang.php
+   ```
+
+### 3.3. Activation in Admin Panel
+
+1. Log in to the Cotonti admin panel.
+2. Go to **Extensions → Plugin Manager**.
+3. Find **Template Editor** (`tpleditor`) in the list.
+4. Click **"Install"**.
+
+After installation the plugin appears in the **Tools** section (`admin.php?m=other`) under the name "Template Editor".
+
+### 3.4. Permissions Setup
+
+By default (`Auth_members=''`, `Lock_members='RW12345A'` in the setup file), only the **super-admin** (`COT_GROUP_SUPERADMINS`, id=5) has access to the plugin. Group permission changes via `admin.php?m=rights` are blocked — `Lock=255` locks all bits.
+
+To expand access:
+
+**Via SQL** (the only way when `Lock=255`):
+
+```sql
+-- Grant group "Administrators" the A right on tpleditor
+UPDATE cot_auth
+SET auth_rights = 128
+WHERE auth_code = 'plug' AND auth_option = 'tpleditor' AND auth_groupid = 6;
+```
+
+Or **before installing the plugin** edit `tpleditor.setup.php`:
+
+```ini
+Auth_members=RWA
+Lock_members=
+```
+
+and reinstall the plugin.
+
+### 3.5. Verification
+
+1. Open **Tools → Template Editor** (`admin.php?m=other&p=tpleditor`).
+2. Verify that the `.tpl` file list appears with labels "Theme", "Admin theme", "Plugin: ...", "Core admin".
+3. Click any theme file → the CodeMirror editor opens.
+4. Change a couple of characters in a comment, click **"Save"** — the status should show "Saved (N B)".
+5. Click **"Download backup copy"** — the browser downloads the current file version.
+
+---
+
+## 4. Step-by-Step Usage Guide
+
+### 4.1. File List
+
+When you open `admin.php?m=other&p=tpleditor` you see:
+
+- heading "Template Editor";
+- a `.tpl` file list sorted by path;
+- each row: icon, `<code>` with path, root badge, size in bytes and modification date on the right.
+
+The whole row is clickable — it opens the editor.
+
+### 4.2. Opening a File in the Editor
+
+Clicking a file opens the editor page:
+
+- heading "Editing" + file path;
+- button panel: **"Back to list"**, **"Save"**, **"Download backup copy"**, status indicator;
+- the CodeMirror area itself with highlighting and line numbers.
+
+The editor container can be dragged from its bottom edge (`resize: vertical`) — height varies from 200px to 90vh.
+
+### 4.3. Saving Changes
+
+1. Edit the content in CodeMirror.
+2. Click **"Save"** or press `Ctrl+S` / `Cmd+S`.
+3. The indicator next to the buttons shows "..." → "Saved (N B)" or "Error: <text>".
+
+**What happens on the server:**
+- CSRF check (`cot_check_xp`);
+- path validation (`tpleditor_validate_path`);
+- marker check (`<!-- BEGIN: -->` in source → `<!-- BEGIN: -->` in new content);
+- `file_put_contents`;
+- `Cot::$cache->clear()`.
+
+On rejection — the file on disk is unchanged, the error appears in the indicator.
+
+### 4.4. Downloading a Backup Copy
+
+The **"Download backup copy"** button opens a GET link to the AJAX endpoint with `action=download` in a new tab. The server sends the file with headers:
+
+- `Content-Type: application/octet-stream`
+- `Content-Disposition: attachment; filename="<basename>"`
+- `Content-Length: <size>`
+- `X-Content-Type-Options: nosniff`
+
+**Important:** this downloads the current state of the file, not a backup from history. The plugin does **not** create `.bak` files — make backups yourself before editing.
+
+### 4.5. Keyboard Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+S` / `Cmd+S` | Save file |
+| `Tab` | Increase indent |
+| `Shift+Tab` | Decrease indent |
+
+The browser's default "Save page" on `Ctrl+S` is suppressed.
+
+---
+
+## 5. Plugin Configuration
+
+Settings are available in **Extensions → Plugin Manager → Template Editor → Configure** (`admin.php?m=config&n=edit&o=plug&p=tpleditor`):
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `edit_themes`  | radio (0/1) | 1 | Allow editing current user theme `.tpl` files |
+| `edit_admin`   | radio (0/1) | 1 | Allow editing admin theme `.tpl` files |
+| `edit_plugins` | radio (0/1) | 1 | Allow editing plugin `.tpl` files |
+| `edit_modules` | radio (0/1) | 1 | Allow editing module `.tpl` files |
+
+The core root `system/admin/tpl/` is included **always**, regardless of settings.
+
+Changes apply immediately: `tpleditor_flag()` reads `Cot::$cfg['plugin']['tpleditor'][<name>]` every time `tpleditor_roots()` is called.
+
+---
+
+## 6. Step-by-Step Security Guide
+
+The plugin grants **direct access to server files**, so it demands discipline:
+
+1. **Do not grant the `A` right on tpleditor to anyone.** The plugin can corrupt site templates to the point of breaking the site. Only trusted administrators.
+2. **Back up regularly.** The plugin **does not create backups** — if you save a corrupted file, rollback is only from an external source (git, manual archive, previously downloaded "Download" copy).
+3. **Use HTTPS.** `.tpl` content and the CSRF token are sent in POST; over HTTP they are visible in plaintext.
+4. **Check `Lock_members` / `Lock_guests` in the setup file.** Defaults are `RW12345A` (full lock), preventing permission changes through the UI. Expand consciously.
+5. **Do not disable CSRF checks.** `cot_check_xg` / `cot_check_xp` in `tpleditor.ajax.php` are the only barrier against CSRF attacks from third-party sites.
+6. **Verify `Content-Type: application/octet-stream`** on download. Do not remove the `nosniff` header — otherwise the browser may try to render `.tpl` as HTML and execute inline JS.
+7. **Restrict `/plugins/` access at the web server.** `.tpl` files should not be directly accessible over HTTP (only via the plugin). Use `deny from all` / `location ~ \.tpl$ { deny all; }`.
+8. **Check template markers before saving.** The built-in `<!-- BEGIN: -->` protection saves you from accidentally saving an empty file, but not from deliberate corruption.
+
+---
+
+## 7. Troubleshooting
+
+### 7.1. Plugin not appearing under "Tools"
+
+**Cause:** plugin installed but the `tools` hook is not registered.
+
+**Fix:**
+- Check **Extensions → Plugin Manager** — the status must be "Active".
+- Check `cot_plugins` in DB: `SELECT * FROM cot_plugins WHERE pl_code='tpleditor'`. There must be at least two records — `pl_part='tools'`, `pl_part='ajax'`.
+- If missing — **Update** the plugin via admin (`Extensions → tpleditor → Update`).
+
+### 7.2. 403 Forbidden on open
+
+**Cause:** the user lacks `A` on `plug/tpleditor` or `admin/a`.
+
+**Fix:**
+- Check the user's group: `SELECT * FROM cot_auth WHERE auth_code='plug' AND auth_option='tpleditor' AND auth_groupid=<id>`.
+- If `auth_rights < 128` — grant `A` via SQL (`UPDATE` to 128) or reinstall after editing the setup file.
+
+### 7.3. Editor not loading (empty `<textarea>`)
+
+**Cause:** CodeMirror failed to load (CDN down, CSP blocking `cdn.jsdelivr.net`).
+
+**Fix:**
+- Open the browser console — you'll see 404/CSP errors on jsdelivr requests.
+- Download CodeMirror 5.65.16 locally and replace links in `tpleditor.editor.tpl` with local ones.
+- Or allow `cdn.jsdelivr.net` in the site's CSP.
+
+### 7.4. Save returns "Invalid path"
+
+**Cause:** `tpleditor_validate_path()` rejected the path. Possible reasons:
+
+- File does not end in `.tpl`.
+- Path contains `..`, empty segments, `\0`.
+- File is a symlink pointing outside `baseDir` or outside the allowed root.
+- Directory from `tpleditor_roots()` does not exist (user theme deleted, plugin disabled).
+
+**Fix:** check the file's `realpath` (`realpath /path/to/file` in ssh) and ensure it starts with `/full/path/to/baseDir/themes/<theme>/` or similar.
+
+### 7.5. Save returns "Content rejected: template markers missing"
+
+**Cause:** marker-loss protection. The source contained `<!-- BEGIN: ... -->` but the new content does not.
+
+**Fix:**
+- Ensure you haven't removed all BEGIN markers from the `.tpl`.
+- If the file is not a Cotonti template (e.g., a `.tpl` for something else) — save it via FTP, or remove the check in `tpleditor.ajax.php` (not recommended).
+
+### 7.6. "File not writable"
+
+**Cause:** the web server has no write permission.
+
+**Fix:**
+- Check permissions: `ls -la /path/to/file.tpl` — must be `rw-` for the PHP-FPM user.
+- Check ownership: `chown www-data:www-data /path/to/file.tpl` (or whichever user PHP runs as).
+- Also make sure the directory is writable (`file_put_contents` needs access to the directory).
+
+### 7.7. Download opens file in browser instead of downloading
+
+**Cause:** browser ignores `Content-Disposition: attachment` or does MIME-sniffing.
+
+**Fix:**
+- Check that `X-Content-Type-Options: nosniff` is present (in `tpleditor.ajax.php`, action=download).
+- Check that `Content-Type: application/octet-stream` (not `text/html`).
+
+### 7.8. File list is empty
+
+**Cause:** all `edit_*` are off, or directories don't exist.
+
+**Fix:**
+- Check plugin settings — all four flags should be `Yes`.
+- Check that you have at least one theme (`themes/<theme>/`), and that `Cot::$usr['theme']` is an existing directory.
+- The core root (`system/admin/tpl/`) is always present — if it's also missing from the list, something more serious is going on (plugin not installed correctly).
+
+---
+
+## 8. Logs and Diagnostics
+
+### 8.1. Where to look
+
+| What | Where |
+|------|-------|
+| PHP errors | `/var/log/php/error.log`, site `error_log` |
+| MySQL errors | `/var/log/mysql/error.log` |
+| Cotonti debug | `datas/config.php` → `$cfg['debug_mode'] = true` |
+| AJAX responses | DevTools → Network → filter by `r=tpleditor` |
+
+### 8.2. Enabling Debug
+
+In `datas/config.php`:
+
+```php
+$cfg['debug_mode'] = true;
+$cfg['devmode']    = true;
+```
+
+The admin panel will show a debug panel with SQL queries including plugin queries.
+
+**Warning:** never leave debug on in production.
+
+### 8.3. AJAX Responses
+
+Open DevTools → Network, filter by `tpleditor`. On save you'll see a POST to `index.php?r=tpleditor`. The response is JSON:
+
+```json
+{
+  "success": true,
+  "message": "Saved",
+  "bytes": 1234
+}
+```
+
+On error:
+
+```json
+{
+  "success": false,
+  "message": "Invalid CSRF token"
+}
+```
+
+HTTP status is 200 (for `catch`) or 400/403 (for explicit rejects). See changelog for v1.0.0.
+
+---
+
+## 9. FAQ
+
+**Q: Does the plugin work offline?**
+A: Only if CodeMirror is deployed locally. By default resources are loaded from `cdn.jsdelivr.net`; without internet the editor doesn't initialize.
+
+**Q: Does the plugin create `.bak` files?**
+A: No. Since v1.0.0 the creation of `.bak.YmdHis` files is **disabled**. The current file state can be downloaded via the "Download backup copy" button — but that's a snapshot, not history.
+
+**Q: Can changes be rolled back?**
+A: Only manually: a previously downloaded copy, git history, site backup. The plugin stores no history.
+
+**Q: Does it work on Cotonti Siena 0.9.x?**
+A: No. The plugin uses `Cot::$cfg`, `Cot::$sys`, `Cot::$usr` — the Cotonti 1.0.x API. It would need a rewrite for 0.9.x.
+
+**Q: Does the plugin support editing `.php`?**
+A: No. `tpleditor_validate_path()` requires the `.tpl` extension — the plugin does not allow editing PHP files.
+
+**Q: What happens when the plugin is uninstalled?**
+A: Records in `cot_core`, `cot_auth`, `cot_config`, `cot_plugins` are deleted. Plugin files remain on disk until removed manually. All `.tpl` edited through the plugin remain modified.
+
+**Q: Can it be used on multiple sites?**
+A: Yes, the plugin is not tied to a domain.
+
+**Q: Why does only the super-admin have access by default?**
+A: `Auth_members=''`, `Lock_members='RW12345A'` — a deliberate fail-safe default. Administrators must explicitly grant access via SQL or by reinstalling with an edited setup file (see section 3.4).
+
+**Q: Why is the `read` action needed if templates don't call it?**
+A: It's a fallback. In the current plugin templates the `read` action is not called — content arrives via `{FILE_CONTENT}` on server render. But the endpoint is ready for external integrations.
+
+**Q: What's the `<!-- BEGIN: -->` check on save?**
+A: Protection against accidentally saving an empty/truncated file. If the source had at least one Cotonti `<!-- BEGIN: -->` marker and the new content has none — the server refuses to write.
+
+---
+
+## 10. Plugin Update
+
+1. **Back up** the plugin files and (just in case) the database.
+2. Download the new version from the marketplace or GitHub.
+3. In the Cotonti admin panel → **Extensions → Plugin Manager → Template Editor → Update**.
+4. Verify that the `tools` and `ajax` hooks remain active.
+5. Open `admin.php?m=other&p=tpleditor` and check that it works.
+
+**Important:** if the version in the setup file matches the installed one, Cotonti returns `COT_EXT_NOTHING_TO_UPDATE` and no update is performed. For a forced update use **Update** with `force_update=true` (via `Extensions → details`), or bump `Version` in the setup file.
+
+---
+
+## 11. Plugin Uninstall
+
+1. In the Cotonti admin panel → **Extensions → Plugin Manager → Template Editor → Uninstall**.
+2. Delete the `plugins/tpleditor/` folder manually if it remains.
+3. Clear the Cotonti cache.
+
+**Important:** the plugin stores no data of its own in the DB. Uninstall is safe. All `.tpl` files edited via the plugin remain modified — to roll them back, use site backups.
+
+---
+
+## 12. Roadmap
+
+- [ ] **Save history** — `.bak` files with a retention limit (e.g., last 5).
+- [ ] **Diff against original** — diff between the current and downloaded state.
+- [ ] **Content search** — grep across all `.tpl` from the list.
+- [ ] **Create / delete** `.tpl` files via UI.
+- [ ] **Edit `*.tpl` in plugin subdirectories** (currently only `tpl/`).
+- [ ] **Core templates** — expose `modules/<code>/tpl/` as an optional root.
+- [ ] **Pug/Twig support** — extend the list of supported extensions.
+- [ ] **CodeMirror dark theme** — toggle between `eclipse` / `dracula`.
+- [ ] **Autosave** — timer-based with an indicator.
+- [ ] **REST API** — editing via API without UI.
+
+---
+
+## 13. Changelog
+
+### v1.0.0 (2026-11-01)
+
+- First public release.
+- `tools` (admin page) and `ajax` (save/read/download) hooks.
+- CodeMirror 5.65.16 with `eclipse` theme and `htmlmixed` mode.
+- File list for themes, admin themes, plugins, modules and core.
+- Path validation with symlink-escape protection.
+- CSRF: `cot_check_xg` (GET) / `cot_check_xp` (POST).
+- Marker check `<!-- BEGIN: -->` on save.
+- Cotonti cache clearing after save.
+- `ru` / `en` localization.
+- Config: `edit_themes`, `edit_admin`, `edit_plugins`, `edit_modules`.
+- Creation of `.bak.YmdHis` files **disabled** — backups only via the "Download backup copy" button.
+
+---
+
+## 14. Contributing
+
+Pull requests are welcome. Before submitting:
+
+1. Fork the [repository](https://github.com/webitproff/tpleditor-cotonti).
+2. Create a branch `feature/your-feature` or `fix/your-bug`.
+3. Follow PSR-12.
+4. All public functions are prefixed `tpleditor_`.
+5. All SQL parameters — via `Cot::$db->prep()` or binding.
+6. All user data in HTML — via `htmlspecialchars()`.
+7. Multi-language — via `$L['tpleditor_*']`.
+8. Update `README.md` and `CHANGELOG`.
+
+---
+
+## 15. License
+
+BSD 3-Clause. Full text in `License.txt`.
+
+---
+
+## 16. Contacts and Support
+
+- **Cotonti Marketplace:** [abuyfile.com/market/cotonti/plugs/tpleditor](https://abuyfile.com/market/cotonti/plugs/tpleditor)
+- **GitHub Repository:** [github.com/webitproff/tpleditor-cotonti](https://github.com/webitproff/tpleditor-cotonti)
+- **Support Forum:** [abuyfile.com/forums/cotonti/custom/](https://abuyfile.com/forums/cotonti/custom/)
+- **Author:** [webitproff](https://github.com/webitproff)
+- **Issues:** [github.com/webitproff/tpleditor-cotonti/issues](https://github.com/webitproff/tpleditor-cotonti/issues)
+
+___
+> RU
+> Русский
+__
+
 # Template Editor (tpleditor) для Cotonti
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/webitproff/tpleditor-cotonti)
@@ -6,14 +641,6 @@
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-lightgrey.svg)](https://github.com/webitproff/tpleditor-cotonti/blob/main/License.txt)
 
 Плагин для Cotonti CMF, добавляющий в админ-панель полноценный редактор `.tpl`-файлов темы, админ-темы, плагинов и модулей на базе CodeMirror 5 с подсветкой синтаксиса, парными скобками и сохранением через AJAX без перезагрузки страницы. Работает без правок ядра — только через штатные хуки `tools` и `ajax`.
-
-
-<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00 (5)" src="https://github.com/user-attachments/assets/79c2ffc5-2ab4-4776-a7bc-30d299c5efc5" />
-<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00" src="https://github.com/user-attachments/assets/b35f9461-fdd0-45b7-b376-577026d37e2e" />
-<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00 (2)" src="https://github.com/user-attachments/assets/77a2881a-e4d2-4483-b327-a515b274d549" />
-<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00 (3)" src="https://github.com/user-attachments/assets/41c62734-a719-473a-a31b-d1354ec61d34" />
-<img width="1920" height="1080" alt="Template Editor (tpleditor) для Cotonti_2026-11-01 11 48 00 (4)" src="https://github.com/user-attachments/assets/6e19921d-6a2f-483f-87d8-0d667ac30a68" />
-
 
 
 ---
